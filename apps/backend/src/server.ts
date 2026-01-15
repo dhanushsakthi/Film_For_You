@@ -42,7 +42,11 @@ const authenticateToken = (req: any, res: any, next: any) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
-    if (!token) return res.status(401).json({ error: "Access denied" });
+    if (!token) {
+        // Default to a guest user if no token is provided
+        req.user = { userId: "guest_user_id", isGuest: true };
+        return next();
+    }
 
     jwt.verify(token, process.env.JWT_SECRET || "secret", (err: any, user: any) => {
         if (err) return res.status(403).json({ error: "Invalid token" });
@@ -233,7 +237,7 @@ app.post("/api/ai/chat", authenticateToken, async (req: any, res: Response) => {
     }
 
     let userContext = "";
-    if (profileId) {
+    if (profileId && !req.user.isGuest) {
         try {
             const user = await User.findById(req.user.userId);
             if (user) {

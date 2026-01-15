@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { API_URL } from "@/lib/config";
 
 interface MovieDetailModalProps {
     movie: any;
@@ -23,12 +24,12 @@ export default function MovieDetailModal({ movie, onClose }: MovieDetailModalPro
             setLoading(true);
             try {
                 // Fetch full details (cast, etc.)
-                const detailsRes = await fetch(`http://localhost:5000/api/movies/${movie.id}`);
+                const detailsRes = await fetch(`${API_URL}/api/movies/${movie.id}`);
                 const detailsData = await detailsRes.json();
                 setDetails(detailsData);
 
                 // Fetch watch providers (defaulting to IN for now, should be dynamic)
-                const providersRes = await fetch(`http://localhost:5000/api/movies/${movie.id}/providers?region=IN`);
+                const providersRes = await fetch(`${API_URL}/api/movies/${movie.id}/providers?region=IN`);
                 const providersData = await providersRes.json();
                 setProviders(providersData);
 
@@ -43,7 +44,7 @@ export default function MovieDetailModal({ movie, onClose }: MovieDetailModalPro
                 }
 
                 // Fetch trailers
-                const trailersRes = await fetch(`http://localhost:5000/api/movies/${movie.id}/trailers`);
+                const trailersRes = await fetch(`${API_URL}/api/movies/${movie.id}/trailers`);
                 const trailersData = await trailersRes.json();
                 setTrailers(trailersData);
             } catch (error) {
@@ -61,8 +62,8 @@ export default function MovieDetailModal({ movie, onClose }: MovieDetailModalPro
 
         const method = isInWatchlist ? "DELETE" : "POST";
         const url = isInWatchlist
-            ? `http://localhost:5000/api/user/profiles/${profileId}/watchlist/${movie.id}`
-            : `http://localhost:5000/api/user/profiles/${profileId}/watchlist`;
+            ? `${API_URL}/api/user/profiles/${profileId}/watchlist/${movie.id}`
+            : `${API_URL}/api/user/profiles/${profileId}/watchlist`;
 
         try {
             const res = await fetch(url, {
@@ -99,7 +100,7 @@ export default function MovieDetailModal({ movie, onClose }: MovieDetailModalPro
     const trackHistory = async () => {
         if (!profileId || !token) return;
         try {
-            await fetch(`http://localhost:5000/api/user/profiles/${profileId}/history`, {
+            await fetch(`${API_URL}/api/user/profiles/${profileId}/history`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

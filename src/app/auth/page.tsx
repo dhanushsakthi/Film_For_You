@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { API_URL } from "@/lib/config";
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -15,7 +16,7 @@ export default function AuthPage() {
     setError("");
     const endpoint = isLogin ? "/api/auth/login" : "/api/auth/register";
     try {
-      const res = await fetch(`http://localhost:5000${endpoint}`, {
+      const res = await fetch(`${API_URL}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
