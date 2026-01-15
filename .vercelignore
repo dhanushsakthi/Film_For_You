@@ -1,0 +1,5 @@
+apps/backend
+apps/mcp-server
+docker-compose.yml
+*.md
+.git
