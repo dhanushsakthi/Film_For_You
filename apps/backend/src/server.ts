@@ -8,11 +8,15 @@ import jwt from "jsonwebtoken";
 import User from "./models/user.model";
 import { mcpClient } from "./services/mcpClient";
 import { geminiService } from "./services/geminiService";
+import { OAuth2Client } from "google-auth-library";
+import nodemailer from "nodemailer";
+import crypto from "crypto";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 app.use(cors());
 app.use(express.json());
@@ -295,6 +299,93 @@ app.post("/api/auth/login", async (req: Request, res: Response) => {
 
         const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || "secret", { expiresIn: "7d" });
         res.json({ token, user: { email: user.email, profiles: user.profiles } });
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post("/api/auth/google", async (req: Request, res: Response) => {
+    const { idToken } = req.body;
+    try {
+        const ticket = await googleClient.verifyIdToken({
+            idToken,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+        const payload = ticket.getPayload();
+        if (!payload) return res.status(400).json({ error: "Invalid Google token" });
+
+        const { email, sub: googleId, name, picture } = payload;
+
+        let user = await User.findOne({ email });
+        if (!user) {
+            // Create user for Google Sign-In if it doesn't exist
+            user = new User({
+                email,
+                password: await bcrypt.hash(crypto.randomBytes(16).toString("hex"), 12),
+                profiles: [
+                    { name: name || "My Profile", avatar: picture, color: "#e50914", age: 18, isKidsMode: false, watchlist: [], history: [] }
+                ]
+            });
+            await user.save();
+        }
+
+        const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || "secret", { expiresIn: "7d" });
+        res.json({ token, user: { email: user.email, profiles: user.profiles } });
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post("/api/auth/forgot-password", async (req: Request, res: Response) => {
+    const { email } = req.body;
+    try {
+        const user = await User.findOne({ email });
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        const resetToken = crypto.randomBytes(32).toString("hex");
+        user.resetPasswordToken = resetToken;
+        user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour
+        await user.save();
+
+        const transporter = nodemailer.createTransport({
+            service: process.env.EMAIL_SERVICE || "gmail",
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS,
+            },
+        });
+
+        const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/auth/reset-password?token=${resetToken}`;
+
+        await transporter.sendMail({
+            to: user.email,
+            subject: "Password Reset Request",
+            text: `You requested a password reset. Click here to reset: ${resetUrl}`,
+            html: `<p>You requested a password reset.</p><p>Click <a href="${resetUrl}">here</a> to reset your password.</p>`,
+        });
+
+        res.json({ message: "Reset link sent to email" });
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post("/api/auth/reset-password", async (req: Request, res: Response) => {
+    const { token, newPassword } = req.body;
+    try {
+        const user = await User.findOne({
+            resetPasswordToken: token,
+            resetPasswordExpires: { $gt: Date.now() },
+        });
+
+        if (!user) return res.status(400).json({ error: "Invalid or expired token" });
+
+        user.password = await bcrypt.hash(newPassword, 12);
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+        await user.save();
+
+        res.json({ message: "Password updated successfully" });
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }

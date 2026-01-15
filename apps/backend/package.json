@@ -16,7 +16,9 @@
         "@modelcontextprotocol/sdk": "^1.0.3",
         "axios": "^1.6.2",
         "bcryptjs": "^2.4.3",
-        "jsonwebtoken": "^9.0.2"
+        "jsonwebtoken": "^9.0.2",
+        "google-auth-library": "^9.4.1",
+        "nodemailer": "^6.9.7"
     },
     "devDependencies": {
         "@types/express": "^4.17.21",
