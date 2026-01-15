@@ -8,6 +8,8 @@
     "dev:mcp": "npm run dev -w apps/mcp-server",
     "dev:backend": "npm run dev -w apps/backend",
     "dev:web": "npm run dev -w apps/web",
+    "build": "npm run build -w apps/web",
+    "start": "npm run start -w apps/web",
     "dev": "concurrently \"npm run dev:mcp\" \"npm run dev:backend\" \"npm run dev:web\""
   },
   "devDependencies": {
