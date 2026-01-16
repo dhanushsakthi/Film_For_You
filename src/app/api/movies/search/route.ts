@@ -5,7 +5,7 @@ const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
 export async function GET(request: Request) {
     if (!TMDB_API_KEY) {
-        return NextResponse.json({ error: 'TMDB_API_KEY is not defined' }, { status: 500 });
+        return NextResponse.json([]);
     }
 
     try {
