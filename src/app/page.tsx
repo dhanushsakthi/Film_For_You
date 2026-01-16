@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AISearchBar from "@/components/AISearchBar";
 import MovieDetailModal from "@/components/MovieDetailModal";
+import CinematicBackground from "@/components/CinematicBackground";
 import { API_URL } from "@/lib/config";
 
 interface Movie {
@@ -78,7 +79,8 @@ export default function Home() {
 
         const fetchProviders = async () => {
             try {
-                const res = await fetch(`${API_URL}/api/movies/watch-providers`);
+                // Use relative path for Vercel optimization
+                const res = await fetch(`/api/movies/watch-providers`);
                 const data = await res.json();
                 setWatchProviders(data);
             } catch (error) {
@@ -105,20 +107,21 @@ export default function Home() {
 
                     if (currentProfile) {
                         // In a real app, these would be API calls
-                        // Fetching trending and top rated as placeholders
-                        const trendingRes = await fetch(`${API_URL}/api/movies/trending`);
+                        // Fetching trending and top rated using relative local API routes
+                        const trendingRes = await fetch(`/api/movies/trending`);
                         const trendingData = await trendingRes.json();
                         setTrending(trendingData.slice(0, 10));
-                        setHeroMovie(trendingData[0]);
+                        // Hero movie is now handled by CinematicBackground
+                        // setHeroMovie(trendingData[0]);
 
-                        const topRatedRes = await fetch(`${API_URL}/api/movies/top-rated`);
+                        const topRatedRes = await fetch(`/api/movies/top-rated`);
                         const topRatedData = await topRatedRes.json();
                         setTopRated(topRatedData.slice(0, 10));
 
                         // Mocking My List and Continue Watching
                         if (currentProfile.watchlist && currentProfile.watchlist.length > 0) {
                             const moviePromises = currentProfile.watchlist.slice(0, 6).map((id: number) =>
-                                fetch(`${API_URL}/api/movies/${id}`).then(res => res.json())
+                                fetch(`/api/movies/${id}`).then(res => res.json())
                             );
                             const movies = await Promise.all(moviePromises);
                             setMyList(movies);
@@ -128,7 +131,7 @@ export default function Home() {
 
                         if (currentProfile.history && currentProfile.history.length > 0) {
                             const historyPromises = currentProfile.history.slice(0, 6).map((id: number) =>
-                                fetch(`http://localhost:5000/api/movies/${id}`).then(res => res.json())
+                                fetch(`/api/movies/${id}`).then(res => res.json())
                             );
                             const historyMovies = await Promise.all(historyPromises);
                             setContinueWatching(historyMovies);
@@ -184,7 +187,8 @@ export default function Home() {
         const profileId = localStorage.getItem("selected_profile");
 
         try {
-            const response = await fetch(`${API_URL}/api/ai/chat`, {
+            // Use relative path for Serverless AI
+            const response = await fetch(`/api/ai/chat`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -311,11 +315,8 @@ export default function Home() {
                 </div>
             )}
 
-            <header
-                className="hero"
-                style={{ backgroundImage: `url(https://image.tmdb.org/t/p/original${heroMovie?.backdrop_path})` }}
-            >
-                <div className="hero-overlay"></div>
+            {/* Cinematic Hero Background with Dynamic TMDB Images */}
+            <CinematicBackground className="hero" onMovieSelect={setHeroMovie}>
                 <div className="hero-content">
                     <AISearchBar onSearch={handleAISearch} isLoading={isAiLoading} />
 
@@ -352,14 +353,14 @@ export default function Home() {
                         ))}
                     </div>
 
-                    <h1 className="hero-title" style={{ marginTop: "1rem" }}>{heroMovie?.title}</h1>
-                    <p className="hero-description">{heroMovie?.overview}</p>
+                    <h1 className="hero-title" style={{ marginTop: "1rem" }}>{heroMovie?.title || "Film For You"}</h1>
+                    <p className="hero-description">{heroMovie?.overview || "Discover your next favorite movie with AI-powered recommendations"}</p>
                     <div className="hero-buttons">
-                        <button className="btn btn-primary" onClick={() => setSelectedMovie(heroMovie)}>Play</button>
-                        <button className="btn btn-secondary" onClick={() => setSelectedMovie(heroMovie)}>More Info</button>
+                        <button className="btn btn-primary" onClick={() => heroMovie && setSelectedMovie(heroMovie)}>Play</button>
+                        <button className="btn btn-secondary" onClick={() => heroMovie && setSelectedMovie(heroMovie)}>More Info</button>
                     </div>
                 </div>
-            </header>
+            </CinematicBackground>
 
             {selectedMovie && (
                 <MovieDetailModal
@@ -376,7 +377,7 @@ export default function Home() {
                                     const curr = profs.find((p: any) => String(p._id) === selectedProfile || String(p.id) === selectedProfile);
                                     if (curr && curr.watchlist) {
                                         const moviePromises = curr.watchlist.slice(0, 6).map((id: number) =>
-                                            fetch(`${API_URL}/api/movies/${id}`).then(res => res.json())
+                                            fetch(`/api/movies/${id}`).then(res => res.json())
                                         );
                                         const movies = await Promise.all(moviePromises);
                                         setMyList(movies);
