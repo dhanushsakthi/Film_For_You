@@ -11,7 +11,7 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const movie = await getMovieDetails(params.id);
-    if (!movie) {
+    if (!movie || Array.isArray(movie)) {
         return {
             title: 'Movie Not Found - Film For You',
         };
@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function MoviePage({ params }: PageProps) {
     const movie = await getMovieDetails(params.id);
 
-    if (!movie) return <div className="min-h-screen flex items-center justify-center bg-black text-white">Movie not found</div>;
+    if (!movie || Array.isArray(movie)) return <div className="min-h-screen flex items-center justify-center bg-black text-white">Movie not found</div>;
 
     const imageUrl = movie.poster_path?.startsWith('http')
         ? movie.poster_path
