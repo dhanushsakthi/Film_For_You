@@ -1,27 +1,35 @@
 import { NextResponse } from 'next/server';
-
-const TMDB_API_KEY = process.env.TMDB_API_KEY;
-const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+import { getMovieDetails } from '@/lib/imdb';
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
-    if (!TMDB_API_KEY) {
-        return NextResponse.json({ error: 'TMDB_API_KEY is not defined' }, { status: 500 });
-    }
-
     const { id } = params;
 
     try {
-        const response = await fetch(
-            `${TMDB_BASE_URL}/movie/${id}?api_key=${TMDB_API_KEY}&append_to_response=videos,credits`
-        );
+        const movie = await getMovieDetails(id);
 
-        if (!response.ok) {
-            throw new Error('Failed to fetch movie details from TMDB');
+        if (!movie) {
+            return NextResponse.json({ error: 'Movie not found' }, { status: 404 });
         }
 
-        const data = await response.json();
-        return NextResponse.json(data);
+        // Map if necessary, or pass through if structure is adequate
+        // Frontend might expect specific fields
+        const result = {
+            id: movie.id,
+            title: movie.title,
+            poster_path: movie.image,
+            backdrop_path: movie.image, // Fallback
+            overview: movie.description,
+            year: movie.year,
+            rating: movie.rating,
+            rank: movie.rank,
+            writers: movie.writers,
+            director: movie.director,
+            genre: movie.genre
+        };
+
+        return NextResponse.json(result);
     } catch (error) {
+        console.error('Details API Error:', error);
         return NextResponse.json({ error: 'Failed to fetch movie details' }, { status: 500 });
     }
 }

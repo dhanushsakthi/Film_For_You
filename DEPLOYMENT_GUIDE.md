@@ -28,8 +28,9 @@ This is the only deployment you need for the core discovery and AI features.
 5. **Environment Variables** (CRITICAL):
    - `TMDB_API_KEY` = `your_tmdb_key_here`
    - `GEMINI_API_KEY` = `your_gemini_key_here`
-   - `RAPID_API_KEY` = `your_rapid_api_key` (Optional: For reliable fallback trailer search)
-   - `NEXT_PUBLIC_API_URL` = (Optional, only needed if you deploy a full backend for user profiles)
+    - `RAPIDAPI_KEY` = `your_rapidapi_key` (Required for Top Rated movies/TV)
+    - `RAPIDAPI_HOST` = `imdb-top-100-movies.p.rapidapi.com`
+    - `NEXT_PUBLIC_API_URL` = (Optional, only needed if you deploy a full backend for user profiles)
 6. Click **Deploy**
 
 ### 🔑 How to Set Environment Variables (Detailed)
@@ -40,7 +41,8 @@ If you missed setting them during import, you can add them anytime:
 4. Add the following keys:
    - **Key**: `TMDB_API_KEY` | **Value**: `...` (paste your key) -> Click **Add**
    - **Key**: `GEMINI_API_KEY` | **Value**: `...` (paste your key) -> Click **Add**
-   - **Key**: `RAPID_API_KEY` | **Value**: `...` (paste your key) -> Click **Add**
+    - **Key**: `RAPIDAPI_KEY` | **Value**: `...` (paste your key) -> Click **Add**
+    - **Key**: `RAPIDAPI_HOST` | **Value**: `imdb-top-100-movies.p.rapidapi.com` -> Click **Add**
 5. **CRITICAL**: Go to the **Deployments** tab and click **Redeploy** (dots menu on the latest deployment) for changes to take effect.
 
 

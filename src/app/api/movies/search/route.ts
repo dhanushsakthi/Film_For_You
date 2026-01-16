@@ -1,13 +1,7 @@
 import { NextResponse } from 'next/server';
-
-const TMDB_API_KEY = process.env.TMDB_API_KEY;
-const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+import { searchMovies } from '@/lib/imdb';
 
 export async function GET(request: Request) {
-    if (!TMDB_API_KEY) {
-        return NextResponse.json([]);
-    }
-
     try {
         const { searchParams } = new URL(request.url);
         const query = searchParams.get('query');
@@ -16,25 +10,20 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Query parameter is required' }, { status: 400 });
         }
 
-        const response = await fetch(
-            `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&language=en-US&page=1`
-        );
+        const data = await searchMovies(query);
 
-        if (!response.ok) {
-            throw new Error('Failed to fetch from TMDB');
-        }
-
-        const data = await response.json();
-        const results = data.results.slice(0, 5).map((movie: any) => ({
+        const results = Array.isArray(data) ? data.map((movie: any) => ({
             id: movie.id,
             title: movie.title,
-            poster_path: movie.poster_path,
-            release_date: movie.release_date,
-            overview: movie.overview
-        }));
+            poster_path: movie.image,
+            year: movie.year,
+            rating: movie.rating,
+            overview: movie.description
+        })) : [];
 
         return NextResponse.json(results);
     } catch (error) {
+        console.error('Search API Error:', error);
         return NextResponse.json({ error: 'Failed to search movies' }, { status: 500 });
     }
 }

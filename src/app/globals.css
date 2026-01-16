@@ -10,6 +10,16 @@
   --card-hover: #1f1f1f;
 
   --font-primary: 'Inter', sans-serif;
+
+  --glass-bg: rgba(20, 20, 20, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-blur: 12px;
+}
+
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -421,6 +431,7 @@ body {
 }
 
 @keyframes voicePulse {
+
   0%,
   100% {
     transform: scale(1);

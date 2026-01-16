@@ -9,10 +9,10 @@ interface AISearchBarProps {
 }
 
 interface Movie {
-    id: number;
+    id: number | string;
     title: string;
     poster_path: string;
-    release_date: string;
+    release_date?: string;
     overview: string;
 }
 
@@ -280,7 +280,7 @@ export default function AISearchBar({ onSearch, isLoading }: AISearchBarProps) {
                         >
                             {movie.poster_path && (
                                 <img
-                                    src={`https://image.tmdb.org/t/p/w92${movie.poster_path}`}
+                                    src={movie.poster_path.startsWith('http') ? movie.poster_path : `https://image.tmdb.org/t/p/w92${movie.poster_path}`}
                                     alt={movie.title}
                                     style={{
                                         width: "50px",

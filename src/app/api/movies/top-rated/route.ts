@@ -1,37 +1,30 @@
 import { NextResponse } from 'next/server';
-
-const TMDB_API_KEY = process.env.TMDB_API_KEY;
-const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+import { getTopRatedMovies } from '@/lib/imdb';
 
 export async function GET() {
-    if (!TMDB_API_KEY) {
-        // Return empty array to prevent frontend crash
-        return NextResponse.json([]);
-    }
-
     try {
-        const response = await fetch(
-            `${TMDB_BASE_URL}/movie/top_rated?api_key=${TMDB_API_KEY}&language=en-US&page=1`
-        );
+        const data = await getTopRatedMovies();
 
-        if (!response.ok) {
-            throw new Error('Failed to fetch from TMDB');
-        }
+        // Map RapidAPI data to frontend structure
+        // RapidAPI IMDb often returns: { id, title, image, year, rating, ... }
+        // Frontend expects: { id, title, poster_path, backdrop_path, overview }
 
-        const data = await response.json();
-        // Filter only valid backdrops
-        const results = data.results
-            .filter((movie: any) => movie.backdrop_path)
-            .map((movie: any) => ({
-                id: movie.id,
-                title: movie.title,
-                backdrop_path: movie.backdrop_path,
-                poster_path: movie.poster_path,
-                overview: movie.overview
-            }));
+        const results = Array.isArray(data) ? data.map((movie: any) => ({
+            id: movie.id, // IMDb ID (e.g., tt0111161)
+            title: movie.title,
+            // Check if image is a full URL. If so, passing it directly might break frontend
+            // if frontend blindly prepends TMDB base URL. 
+            // We will pass it as poster_path and fix frontend later.
+            poster_path: movie.image,
+            backdrop_path: movie.image, // Fallback to poster if no backdrop
+            overview: movie.description || `Rank #${movie.rank} on IMDb`,
+            year: movie.year,
+            rating: movie.rating
+        })) : [];
 
         return NextResponse.json(results);
     } catch (error) {
+        console.error('API Error:', error);
         return NextResponse.json({ error: 'Failed to fetch top rated movies' }, { status: 500 });
     }
 }
