@@ -1,7 +1,12 @@
-export const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY!;
-export const RAPIDAPI_HOST = process.env.RAPIDAPI_HOST!;
-
 export const fetchFromIMDb = async (endpoint: string, params: Record<string, string> = {}) => {
+    const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
+    const RAPIDAPI_HOST = process.env.RAPIDAPI_HOST || 'imdb-top-100-movies.p.rapidapi.com';
+
+    if (!RAPIDAPI_KEY) {
+        console.warn("RAPIDAPI_KEY is missing. Skipping IMDb fetch.");
+        return [];
+    }
+
     const url = `https://${RAPIDAPI_HOST}/${endpoint}`;
     const queryString = new URLSearchParams(params).toString();
     const fullUrl = queryString ? `${url}?${queryString}` : url;

@@ -1,5 +1,5 @@
 import React from "react";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import ConsentNotice from "@/components/ConsentNotice";
@@ -13,7 +13,6 @@ export const metadata: Metadata = {
     keywords: ["movie recommendations", "AI movie search", "what to watch", "film discovery", "streaming guide"],
     authors: [{ name: "Antigravity Team" }],
     manifest: "/manifest.json",
-    themeColor: "#e50914",
     openGraph: {
         title: "Film For You - AI Movie Discovery",
         description: "Personalized AI-powered movie discovery for everyone.",
@@ -35,6 +34,10 @@ export const metadata: Metadata = {
         description: "Let AI find your next favorite movie.",
         images: ["/og-image.jpg"],
     },
+};
+
+export const viewport: Viewport = {
+    themeColor: "#e50914",
 };
 
 export default function RootLayout({
