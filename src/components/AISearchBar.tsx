@@ -1,11 +1,10 @@
-"use client";
-
 import React, { useState, useRef, useEffect } from "react";
-import { API_URL } from "@/lib/config";
+import { processVoiceCommand } from "@/lib/gemini";
 
 interface AISearchBarProps {
     onSearch: (query: string) => void;
     isLoading?: boolean;
+    compact?: boolean;
 }
 
 interface Movie {
@@ -16,94 +15,76 @@ interface Movie {
     overview: string;
 }
 
-export default function AISearchBar({ onSearch, isLoading }: AISearchBarProps) {
+export default function AISearchBar({ onSearch, isLoading, compact }: AISearchBarProps) {
     const [query, setQuery] = useState("");
-    const [isListening, setIsListening] = useState(false);
+    const [isRecording, setIsRecording] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
     const [voiceSearchResults, setVoiceSearchResults] = useState<Movie[]>([]);
     const [showVoiceResults, setShowVoiceResults] = useState(false);
     const [voiceError, setVoiceError] = useState<string>("");
-    const [isSpeechSupported, setIsSpeechSupported] = useState(true);
-    const recognitionRef = useRef<any>(null);
 
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-            const hasWebSpeech = "webkitSpeechRecognition" in window || "SpeechRecognition" in window;
-            setIsSpeechSupported(hasWebSpeech);
+    // MediaRecorder refs
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const audioChunksRef = useRef<Blob[]>([]);
 
-            if (hasWebSpeech) {
-                const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
-                recognitionRef.current = new SpeechRecognition();
-                recognitionRef.current.continuous = false;
-                recognitionRef.current.interimResults = false;
-                recognitionRef.current.lang = "en-US";
-
-                recognitionRef.current.onresult = async (event: any) => {
-                    const transcript = event.results[0][0].transcript;
-                    setQuery(transcript);
-                    setIsListening(false);
-
-                    // Search TMDB for the voice query
-                    await searchTMDB(transcript);
-                };
-
-                recognitionRef.current.onerror = (event: any) => {
-                    console.error("Speech recognition error:", event.error);
-                    setIsListening(false);
-
-                    let errorMessage = "Voice recognition failed. Please try again.";
-                    if (event.error === "no-speech") {
-                        errorMessage = "No speech detected. Please try again.";
-                    } else if (event.error === "not-allowed") {
-                        errorMessage = "Microphone access denied. Please enable it in browser settings.";
-                    }
-                    setVoiceError(errorMessage);
-                    setTimeout(() => setVoiceError(""), 3000);
-                };
-
-                recognitionRef.current.onend = () => {
-                    setIsListening(false);
-                };
-            }
-        }
-    }, []);
-
-    const searchTMDB = async (searchQuery: string) => {
-        try {
-            // Use relative path to hit Next.js API routes
-            const response = await fetch(`/api/movies/search?query=${encodeURIComponent(searchQuery)}`);
-            const data = await response.json();
-
-            if (data && data.length > 0) {
-                setVoiceSearchResults(data.slice(0, 5)); // Show top 5 results
-                setShowVoiceResults(true);
-
-                // Auto-trigger AI search with the voice query
-                onSearch(searchQuery);
-            } else {
-                setVoiceError("No movies found. Try a different search.");
-                setTimeout(() => setVoiceError(""), 3000);
-            }
-        } catch (error) {
-            console.error("TMDB search error:", error);
-            setVoiceError("Search failed. Please try again.");
-            setTimeout(() => setVoiceError(""), 3000);
+    const handleVoiceSearch = async () => {
+        if (isRecording) {
+            stopRecording();
+        } else {
+            startRecording();
         }
     };
 
-    const toggleListening = () => {
-        if (!isSpeechSupported) {
-            setVoiceError("Voice search is not supported in this browser. Try Chrome, Edge, or Safari.");
-            setTimeout(() => setVoiceError(""), 4000);
-            return;
-        }
+    const startRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
 
-        if (isListening) {
-            recognitionRef.current?.stop();
-        } else {
+            mediaRecorderRef.current = mediaRecorder;
+            audioChunksRef.current = [];
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    audioChunksRef.current.push(event.data);
+                }
+            };
+
+            mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                setIsProcessing(true);
+                setIsRecording(false);
+
+                // Stop all tracks
+                stream.getTracks().forEach(track => track.stop());
+
+                try {
+                    const text = await processVoiceCommand(audioBlob);
+                    if (text) {
+                        setQuery(text);
+                        onSearch(text);
+                    } else {
+                        setVoiceError("Could not understand audio. Try again.");
+                    }
+                } catch (error) {
+                    console.error(error);
+                    setVoiceError("Voice processing failed.");
+                } finally {
+                    setIsProcessing(false);
+                }
+            };
+
+            mediaRecorder.start();
+            setIsRecording(true);
             setVoiceError("");
-            setShowVoiceResults(false);
-            setIsListening(true);
-            recognitionRef.current?.start();
+        } catch (error) {
+            console.error("Microphone access denied:", error);
+            setVoiceError("Microphone access denied.");
+        }
+    };
+
+    const stopRecording = () => {
+        if (mediaRecorderRef.current && isRecording) {
+            mediaRecorderRef.current.stop();
         }
     };
 
@@ -116,65 +97,34 @@ export default function AISearchBar({ onSearch, isLoading }: AISearchBarProps) {
     };
 
     return (
-        <div style={{
-            width: "100%",
-            maxWidth: "600px",
-            position: "relative",
-            margin: "0 auto"
-        }}>
-            <form onSubmit={handleSubmit} style={{ display: "flex", alignItems: "center", position: "relative" }}>
+        <div className={`w-full max-w-xl mx-auto relative ${compact ? 'scale-90 origin-top-right' : ''}`}>
+            <form onSubmit={handleSubmit} className="relative flex items-center">
                 <input
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Ask AI or use voice: 'Find me some classic action movies...'"
-                    style={{
-                        width: "100%",
-                        padding: "1rem 3.5rem 1rem 1.5rem",
-                        borderRadius: "50px",
-                        border: `2px solid ${isListening ? "var(--accent)" : "var(--secondary)"}`,
-                        backgroundColor: "rgba(0,0,0,0.7)",
-                        color: "white",
-                        fontSize: "1.1rem",
-                        outline: "none",
-                        backdropFilter: "blur(10px)",
-                        transition: "all 0.3s",
-                        boxShadow: isListening ? "0 0 20px rgba(229, 9, 20, 0.3)" : "none"
-                    }}
-                    onFocus={(e) => e.currentTarget.style.borderColor = "var(--accent)"}
-                    onBlur={(e) => !isListening && (e.currentTarget.style.borderColor = "var(--secondary)")}
+                    placeholder={isRecording ? "Listening..." : isProcessing ? "Processing audio..." : "Search movies..."}
+                    className={`w-full py-3 pl-6 pr-14 rounded-full bg-black/80 text-white border-2 outline-none backdrop-blur-md transition-all duration-300 ${isRecording ? "border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]" :
+                            isProcessing ? "border-blue-500 animate-pulse" : "border-gray-700 focus:border-white"
+                        }`}
+                    disabled={isRecording || isProcessing}
                 />
+
                 <button
                     type="button"
-                    onClick={toggleListening}
-                    title={isSpeechSupported ? "Click to use voice search" : "Voice search not supported"}
-                    style={{
-                        position: "absolute",
-                        right: "15px",
-                        background: "none",
-                        border: "none",
-                        cursor: isSpeechSupported ? "pointer" : "not-allowed",
-                        color: isListening ? "var(--accent)" : (isSpeechSupported ? "var(--muted)" : "#555"),
-                        fontSize: "1.5rem",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        transition: "all 0.2s",
-                        opacity: isSpeechSupported ? 1 : 0.5
-                    }}
+                    onClick={handleVoiceSearch}
+                    className={`absolute right-3 p-2 rounded-full transition-all duration-200 ${isRecording ? "bg-red-500 text-white scale-110" : "text-gray-400 hover:text-white hover:bg-white/10"
+                        }`}
+                    disabled={isProcessing}
                 >
-                    {isListening ? (
-                        <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                            <div className="voice-pulse-animated" style={{
-                                width: "10px",
-                                height: "10px",
-                                borderRadius: "50%",
-                                backgroundColor: "var(--accent)"
-                            }}></div>
-                            <span style={{ fontSize: "0.8rem", color: "var(--accent)", fontWeight: "600" }}>Listening...</span>
+                    {isRecording ? (
+                        <div className="w-5 h-5 flex items-center justify-center">
+                            <span className="w-2.5 h-2.5 bg-white rounded-sm animate-pulse"></span>
                         </div>
                     ) : (
-                        <span style={{ filter: isSpeechSupported ? "none" : "grayscale(100%)" }}>🎙️</span>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                        </svg>
                     )}
                 </button>
             </form>
