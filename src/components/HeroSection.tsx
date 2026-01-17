@@ -3,22 +3,14 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-
-interface Movie {
-    id: number | string;
-    title: string;
-    overview: string;
-    backdrop_path?: string;
-    poster_path: string;
-    rating?: string | number;
-    year?: string | number;
-}
+import { Movie } from "@/lib/api";
 
 interface HeroSectionProps {
     movies: Movie[];
+    onPlayClick?: (movie: Movie) => void;
 }
 
-export default function HeroSection({ movies }: HeroSectionProps) {
+export default function HeroSection({ movies, onPlayClick }: HeroSectionProps) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isFading, setIsFading] = useState(false);
 
@@ -31,7 +23,7 @@ export default function HeroSection({ movies }: HeroSectionProps) {
                 setCurrentIndex((prev) => (prev + 1) % movies.length);
                 setIsFading(false);
             }, 500); // Wait for fade out
-        }, 30000); // 30 seconds
+        }, 10000); // 10 seconds
 
         return () => clearInterval(interval);
     }, [movies]);
@@ -91,9 +83,9 @@ export default function HeroSection({ movies }: HeroSectionProps) {
                     </p>
 
                     <div className="flex gap-4">
-                        <Link
-                            href={`/movie/${currentMovie.id}`}
-                            className="px-8 py-3 bg-white text-black font-bold rounded hover:bg-white/90 transition-colors flex items-center gap-2"
+                        <button
+                            onClick={() => onPlayClick && onPlayClick(currentMovie)}
+                            className="px-8 py-3 bg-white text-black font-bold rounded hover:bg-white/90 transition-colors flex items-center gap-2 cursor-pointer"
                         >
                             <svg
                                 className="w-6 h-6"
@@ -103,7 +95,7 @@ export default function HeroSection({ movies }: HeroSectionProps) {
                                 <path d="M8 5v14l11-7z" />
                             </svg>
                             Play
-                        </Link>
+                        </button>
                         <Link
                             href={`/movie/${currentMovie.id}`}
                             className="px-8 py-3 bg-gray-500/30 text-white font-bold rounded backdrop-blur-sm hover:bg-gray-500/50 transition-colors flex items-center gap-2"
