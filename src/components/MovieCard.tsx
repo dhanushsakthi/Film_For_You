@@ -21,11 +21,13 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie, priority = false, onClick 
             <div className="aspect-[2/3] relative w-full h-full">
                 {/* Use Next.js Image for optimization */}
                 {/* Note: In a real app, you need to configure 'images.domains' in next.config.js for external hosts */}
-                <img
+                <Image
                     src={imageUrl}
                     alt={movie.title}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    loading={priority ? "eager" : "lazy"}
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-110"
+                    priority={priority}
+                    sizes="(max-width: 768px) 150px, 200px"
                 />
             </div>
 
