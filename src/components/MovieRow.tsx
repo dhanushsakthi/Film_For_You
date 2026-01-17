@@ -1,69 +1,41 @@
-"use client";
+import React from 'react';
+import MovieCard from './MovieCard';
 
-import React, { useRef, useState, MouseEvent } from 'react';
-
-interface MovieRowProps {
-    children: React.ReactNode;
-    title?: string;
-    className?: string;
+interface Movie {
+    id: number | string;
+    title: string;
+    poster_path: string;
+    year?: string | number;
+    rating?: number | string;
+    rank?: number;
+    backdrop_path?: string;
+    overview?: string;
 }
 
-const MovieRow: React.FC<MovieRowProps> = ({ children, title, className = "" }) => {
-    const rowRef = useRef<HTMLDivElement>(null);
-    const [isDragging, setIsDragging] = useState(false);
-    const [startX, setStartX] = useState(0);
-    const [scrollLeft, setScrollLeft] = useState(0);
+interface MovieRowProps {
+    title: string;
+    movies: Movie[];
+}
 
-    const onMouseDown = (e: MouseEvent) => {
-        if (!rowRef.current) return;
-        setIsDragging(true);
-        setStartX(e.pageX - rowRef.current.offsetLeft);
-        setScrollLeft(rowRef.current.scrollLeft);
-    };
-
-    const onMouseLeave = () => {
-        setIsDragging(false);
-    };
-
-    const onMouseUp = () => {
-        setIsDragging(false);
-    };
-
-    const onMouseMove = (e: MouseEvent) => {
-        if (!isDragging || !rowRef.current) return;
-        e.preventDefault();
-        const x = e.pageX - rowRef.current.offsetLeft;
-        const walk = (x - startX) * 2; // Scroll-fast
-        rowRef.current.scrollLeft = scrollLeft - walk;
-    };
-
+const MovieRow: React.FC<MovieRowProps> = ({ title, movies }) => {
     return (
-        <section className={`py-6 md:py-8 ${className}`}>
-            {title && (
-                <h2 className="text-xl md:text-2xl font-bold mb-4 text-white px-4 md:px-12">
-                    {title}
-                </h2>
-            )}
-            <div
-                ref={rowRef}
-                className="flex gap-4 overflow-x-auto px-4 md:px-12 scrollbar-hide py-4 cursor-grab active:cursor-grabbing snap-x snap-mandatory"
-                onMouseDown={onMouseDown}
-                onMouseLeave={onMouseLeave}
-                onMouseUp={onMouseUp}
-                onMouseMove={onMouseMove}
-                style={{ scrollBehavior: 'smooth' }}
-            >
+        <div className="space-y-4 md:space-y-6 my-8 px-4 md:px-12">
+            <h2 className="text-2xl md:text-3xl font-semibold text-white drop-shadow-md mb-2">{title}</h2>
+
+            <div className="group relative">
                 {/* 
-                  Enforce a min-width on children to ensure they don't shrink 
-                  when using basic flebox.
-                */}
-                {React.Children.map(children, child => (
-                    <div className="min-w-[160px] md:min-w-[200px] snap-start">
-                        {child}
-                    </div>
-                ))}
+                     Using raw CSS scroll snapping for horizontal list 
+                     Ideally we would use 'ref' to scroll left/right with buttons
+                 */}
+                <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide scroll-smooth snap-x snap-mandatory">
+                    {movies.map((movie) => (
+                        <div key={movie.id} className="min-w-[160px] md:min-w-[200px] snap-start">
+                            <MovieCard movie={movie} />
+                        </div>
+                    ))}
+                </div>
             </div>
-        </section>
+        </div>
     );
 };
 

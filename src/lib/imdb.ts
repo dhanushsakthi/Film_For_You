@@ -73,3 +73,18 @@ export const getTopTvShows = async () => {
     // For now using a placeholder endpoint or query
     return await fetchFromIMDb('series');
 };
+
+export const getTrendingMovies = async () => {
+    // For trending, we might use a different endpoint or filter top rated
+    // If specific trending endpoint exists in the RapidAPI provider:
+    // return await fetchFromIMDb('trending');
+
+    // Fallback: Get top rated and shuffle or take a slice
+    const topRated = await getTopRatedMovies();
+    if (Array.isArray(topRated)) {
+        // Return a different slice or shuffled version to simulate trending vs top rated
+        return topRated.slice(0, 15).sort(() => 0.5 - Math.random());
+    }
+    return [];
+};
+

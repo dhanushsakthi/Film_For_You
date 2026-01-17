@@ -1,37 +1,27 @@
 import { NextResponse } from 'next/server';
+import { getTrendingMovies } from '@/lib/imdb';
 
-const TMDB_API_KEY = process.env.TMDB_API_KEY;
-const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET() {
-    if (!TMDB_API_KEY) {
-        // Return empty array to prevent frontend crash
-        return NextResponse.json([]);
-    }
-
     try {
-        const response = await fetch(
-            `${TMDB_BASE_URL}/trending/movie/week?api_key=${TMDB_API_KEY}&language=en-US`
-        );
+        const data = await getTrendingMovies();
 
-        if (!response.ok) {
-            throw new Error('Failed to fetch from TMDB');
-        }
-
-        const data = await response.json();
-        // Filter only valid backdrops
-        const results = data.results
-            .filter((movie: any) => movie.backdrop_path)
-            .map((movie: any) => ({
-                id: movie.id,
-                title: movie.title,
-                backdrop_path: movie.backdrop_path,
-                poster_path: movie.poster_path,
-                overview: movie.overview
-            }));
+        const results = Array.isArray(data) ? data.map((movie: any) => ({
+            id: movie.id,
+            title: movie.title,
+            poster_path: movie.image,
+            backdrop_path: movie.image, // Fallback
+            overview: movie.description || `Trending now`,
+            year: movie.year,
+            rating: movie.rating,
+            rank: movie.rank
+        })) : [];
 
         return NextResponse.json(results);
     } catch (error) {
+        console.error('API Error:', error);
         return NextResponse.json({ error: 'Failed to fetch trending movies' }, { status: 500 });
     }
 }
